@@ -1,0 +1,8 @@
+---
+include:
+  - board: nice_nano//zmk
+    shield: corne_left nice_view_adapter nice_epaper
+    artifact-name: corne_left-nice_epaper
+  - board: nice_nano//zmk
+    shield: corne_right nice_view_adapter nice_epaper
+    artifact-name: corne_right-nice_epaper

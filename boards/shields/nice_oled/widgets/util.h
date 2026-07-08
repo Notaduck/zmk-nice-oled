@@ -1,11 +1,26 @@
 #pragma once
 
+#include <stdint.h>
+
 #include <lvgl.h>
 #include <zmk/endpoints.h>
 
 // nice_epaper and nice_oled standard width = 68, height = 160
 #define CANVAS_WIDTH CONFIG_NICE_OLED_CUSTOM_CANVAS_WIDTH
 #define CANVAS_HEIGHT CONFIG_NICE_OLED_CUSTOM_CANVAS_HEIGHT
+#define CANVAS_COLOR_FORMAT LV_COLOR_FORMAT_L8
+#define CANVAS_BUF_SIZE                                                                        \
+    LV_CANVAS_BUF_SIZE(CANVAS_HEIGHT, CANVAS_HEIGHT,                                           \
+                       LV_COLOR_FORMAT_GET_BPP(CANVAS_COLOR_FORMAT), LV_DRAW_BUF_STRIDE_ALIGN)
+
+#define lv_draw_img_dsc_t lv_draw_image_dsc_t
+#define lv_draw_img_dsc_init lv_draw_image_dsc_init
+#define LV_IMG_CF_TRUE_COLOR CANVAS_COLOR_FORMAT
+#define LV_IMG_ZOOM_NONE LV_SCALE_NONE
+#define lv_canvas_draw_rect canvas_draw_rect
+#define lv_canvas_draw_text canvas_draw_text
+#define lv_canvas_draw_line canvas_draw_line
+#define lv_canvas_draw_img canvas_draw_img
 
 #define LVGL_BACKGROUND                                                                            \
     IS_ENABLED(CONFIG_NICE_OLED_WIDGET_INVERTED) ? lv_color_black() : lv_color_white()
@@ -63,9 +78,17 @@ struct status_state {
 };
 
 void to_uppercase(char *str);
-void rotate_canvas(lv_obj_t *canvas, lv_color_t cbuf[]);
+void rotate_canvas(lv_obj_t *canvas, uint8_t cbuf[]);
 void draw_background(lv_obj_t *canvas);
 void init_rect_dsc(lv_draw_rect_dsc_t *rect_dsc, lv_color_t bg_color);
 void init_line_dsc(lv_draw_line_dsc_t *line_dsc, lv_color_t color, uint8_t width);
 void init_label_dsc(lv_draw_label_dsc_t *label_dsc, lv_color_t color, const lv_font_t *font,
                     lv_text_align_t align);
+void canvas_draw_rect(lv_obj_t *canvas, int32_t x, int32_t y, int32_t w, int32_t h,
+                      lv_draw_rect_dsc_t *rect_dsc);
+void canvas_draw_text(lv_obj_t *canvas, int32_t x, int32_t y, int32_t max_w,
+                      lv_draw_label_dsc_t *label_dsc, const char *text);
+void canvas_draw_line(lv_obj_t *canvas, const lv_point_t *points, uint32_t point_cnt,
+                      lv_draw_line_dsc_t *line_dsc);
+void canvas_draw_img(lv_obj_t *canvas, int32_t x, int32_t y, const void *src,
+                     lv_draw_image_dsc_t *img_dsc);

@@ -202,7 +202,7 @@ static void draw_battery_text(lv_obj_t *canvas, const struct status_state *state
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
 //  Declaración adelantada (Forward Declaration) para draw_canvas
-static void draw_canvas(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state);
+static void draw_canvas(lv_obj_t *widget, uint8_t cbuf[], const struct status_state *state);
 //  Fin Declaración adelantada
 
 /**
@@ -854,7 +854,7 @@ static struct zmk_widget_hid_indicators hid_indicators_widget;
  * Draw canvas
  **/
 
-static void draw_canvas(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
+static void draw_canvas(lv_obj_t *widget, uint8_t cbuf[], const struct status_state *state) {
     lv_obj_t *canvas = lv_obj_get_child(widget, 0);
 
     // Draw widgets
@@ -1059,7 +1059,7 @@ static void output_status_update_cb(struct output_status_state state) {
 
 static struct output_status_state output_status_get_state(const zmk_event_t *_eh) {
     return (struct output_status_state){
-        .selected_endpoint = zmk_endpoints_selected(),
+        .selected_endpoint = zmk_endpoint_get_selected(),
         .active_profile_index = zmk_ble_active_profile_index(),
         .active_profile_connected = zmk_ble_active_profile_is_connected(),
         .active_profile_bonded = !zmk_ble_active_profile_is_open(),

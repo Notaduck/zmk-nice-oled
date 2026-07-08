@@ -8,6 +8,7 @@
 <a name="top"></a>
 
 - [Overview](#overview)
+- [Zephyr 4.1 compatibility](#zephyr-41-compatibility)
 - [Gallery](#gallery)
 - [Quick Installation](#quick-installation)
 - [Configuration](#configuration)
@@ -20,10 +21,28 @@
 
 # Overview
 > [!WARNING]
-> TESTED USING ZMK v0.3.0 please see [Pin your ZMK version](https://zmk.dev/blog/2025/06/20/pinned-zmk)
+> This `zephyr-4.1-upgrade` branch targets current ZMK `main` with Zephyr 4.1 and LVGL 9.
 
 Vertical widgets for [oled] and [niceview] screens using zmk (for split and non-split keyboards)
 
+# Zephyr 4.1 compatibility
+
+This branch migrates the module to the current ZMK external-module flow:
+
+- ZMK: `main`
+- Zephyr: 4.1
+- LVGL: 9
+- Verified board target: `nice_nano//zmk`
+- Verified shields: `corne_left nice_view_adapter nice_epaper` and `corne_right nice_view_adapter nice_epaper`
+- Default test configuration keeps RAW HID disabled: `CONFIG_NICE_OLED_WIDGET_RAW_HID=n`
+
+The migration keeps the existing `nice_oled`, `nice_epaper`, and `nice_custom` shields, but the local build and CI coverage on this branch is focused on nice!view / `nice_epaper` for Corne left and right halves.
+
+Known limits for this branch:
+
+- RAW HID, host sync, weather, and Spotify display code are still opt-in and host-dependent.
+- `nice_oled` and `nice_custom` remain in the module, but they were not part of the Zephyr 4.1 verification pass.
+- The example uses ZMK `main`; pin ZMK to a known commit in production if you need reproducible firmware.
 
 ## System Architecture & Implementation Summary
 
@@ -96,22 +115,27 @@ The companion host application, `zmk-hid-host`, provides the necessary data brid
 # Quick Installation
 > [!WARNING]
 >
-> TESTED USING ZMK v0.3.0 please see [Pin your ZMK version](https://zmk.dev/blog/2025/06/20/pinned-zmk)
+> These examples use current ZMK `main` and the Zephyr 4.1 board target syntax. For long-lived keyboard configs, pin both ZMK and this module to known commits.
 
 > [!TIP]
 >
-> All widgets are enabled `hid`,` modifiers`, `wpm` etc., if you want to
-> disable them, look at the configuration section
+> RAW HID is disabled by default. Enable `CONFIG_NICE_OLED_WIDGET_RAW_HID=y` only when you also run the host-side companion app.
 
 Installation in 4 simple steps:
-
-0. Configuration example? You should see this `->` [zmk-config]
 
 1. Make sure to enable the custom status screen in your `*.conf` file:
 
 ```conf
 CONFIG_ZMK_DISPLAY=y
 CONFIG_ZMK_DISPLAY_STATUS_SCREEN_CUSTOM=y
+
+# nice!view / nice_epaper
+CONFIG_NICE_EPAPER_ON=y
+CONFIG_NICE_OLED_ON=n
+CONFIG_NICE_CUSTOM_ON=n
+
+# Optional host-dependent feature, off for the default build.
+CONFIG_NICE_OLED_WIDGET_RAW_HID=n
 ```
 
 2. Copy and paste this into your `config/west.yml` file:
@@ -121,18 +145,16 @@ manifest:
   remotes:
     - name: zmkfirmware
       url-base: https://github.com/zmkfirmware
-    # support nice_oled and nice_epaper
-    - name: mctechnology17
-      url-base: https://github.com/mctechnology17
+    - name: Notaduck
+      url-base: https://github.com/Notaduck
   projects:
     - name: zmk
       remote: zmkfirmware
-      revision: v0.3.0
-      import: app/west.yml
-    # support nice_oled and nice_epaper
-    - name: zmk-nice-oled
-      remote: mctechnology17
       revision: main
+      import: app/west.yml
+    - name: zmk-nice-oled
+      remote: Notaduck
+      revision: zephyr-4.1-upgrade
   self:
     path: config
 ```
@@ -144,9 +166,9 @@ For [oled] screen:
 ```yaml
 ---
 include:
-  - board: nice_nano_v2
+  - board: nice_nano//zmk
     shield: corne_left nice_oled
-  - board: nice_nano_v2
+  - board: nice_nano//zmk
     shield: corne_right nice_oled
 ```
 
@@ -154,13 +176,22 @@ For [niceview] screen:
 ```yaml
 ---
 include:
-  - board: nice_nano_v2
+  - board: nice_nano//zmk
     shield: corne_left nice_view_adapter nice_epaper
-  - board: nice_nano_v2
+  - board: nice_nano//zmk
     shield: corne_right nice_view_adapter nice_epaper
 ```
 
 4. Build the firmware, flash it to your keyboard, and enjoy!
+
+Local build commands used to verify this branch:
+
+```sh
+west build -s zmk/app -d build/left -p always -b 'nice_nano//zmk' -- -DSHIELD='corne_left nice_view_adapter nice_epaper'
+west build -s zmk/app -d build/right -p always -b 'nice_nano//zmk' -- -DSHIELD='corne_right nice_view_adapter nice_epaper'
+```
+
+This repository also includes a CI build matrix under `ci/`, a minimal config under `ci-config/`, and a GitHub Actions workflow that builds those same two targets.
 
 # Configuration
 > [!IMPORTANT]
@@ -258,7 +289,7 @@ This document lists the available configuration options for the `nice_oled` shie
 
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
-| `CONFIG_NICE_OLED_WIDGET_RAW_HID` | bool | - | Enable RAW HID |
+| `CONFIG_NICE_OLED_WIDGET_RAW_HID` | bool | `n` | Enable RAW HID and host-dependent display data |
 | `CONFIG_NICE_OLED_WIDGET_RAW_HID_DRIVER` | bool | `y` | Enable Raw HID |
 | `CONFIG_USB_HID_DEVICE_COUNT` | int | `2` | Enable CONFIG USB HID DEVICE COUNT |
 | `CONFIG_NICE_OLED_WIDGET_RAW_HID_TIME` | bool | `y` | Show time |
@@ -770,7 +801,7 @@ If you enjoy my contributions, feel free to donate.
 [nice-view]: https://nicekeyboards.com/nice-view
 [puchi_ble_v1]: (https://keycapsss.com/keyboard-parts/mcu-controller/202/puchi-ble-wireless-microcontroller-pro-micro-replacement?number=KC10157_SWITCH&c=18)
 [seeeduino_xiao_ble]: (https://keycapsss.com/keyboard-parts/mcu-controller/212/seeed-studio-xiao-nrf52840-rp2040-esp32c3?number=KC10167_NRF)
-[nice_nano_v2]: (https://nicekeyboards.com/nice-nano)
+[nice_nano]: (https://nicekeyboards.com/nice-nano)
 [keymap-editor]: https://nickcoutsos.github.io/keymap-editor/
 [ZMK firmware]: https://github.com/zmkfirmware/zmk/
 [ZMK documentation]: https://zmk.dev/docs/user-setup
